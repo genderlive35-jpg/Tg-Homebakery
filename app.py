@@ -107,6 +107,8 @@ def remove_admin(uid):
     c=db(); c.execute("DELETE FROM admins WHERE telegram_id=? AND owner=0",(uid,)); c.commit(); c.close()
     return jsonify(ok=True)
 
+init_db()
+
 if __name__=="__main__":
     init_db()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")))
