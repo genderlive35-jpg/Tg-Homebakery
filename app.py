@@ -44,6 +44,10 @@ def admin():
 def index():
     return render_template("index.html")
 
+@app.get("/admin")
+def admin_page():
+    return render_template("admin.html")
+
 @app.get("/api/me")
 def me():
     r=admin()
