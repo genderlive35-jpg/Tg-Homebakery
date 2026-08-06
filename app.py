@@ -113,6 +113,45 @@ def remove_admin(uid):
 
 init_db()
 
+@app.post("/api/payment-done")
+def payment_done():
+    import requests
+
+    data = request.get_json(silent=True) or {}
+    cart = data.get("cart", [])
+    total = data.get("total", 0)
+
+    if not cart:
+        return jsonify(ok=False, error="Корзина пуста"), 400
+
+    text = "💰 НОВАЯ ОПЛАТА\n\n"
+
+    for item in cart:
+        text += f"• {item.get('name', 'Товар')} — {item.get('price', 0)} ₽\n"
+
+    text += f"\n💵 Итого: {total} ₽"
+    text += "\n\n⚠️ Проверь поступление денег в Альфа-Банке."
+
+    bot_token = os.getenv("BOT_TOKEN")
+    owner_id = os.getenv("OWNER_ID")
+
+    if not bot_token or not owner_id:
+        return jsonify(ok=False, error="BOT_TOKEN или OWNER_ID не настроен"), 500
+
+    r = requests.post(
+        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+        json={
+            "chat_id": owner_id,
+            "text": text
+        },
+        timeout=10
+    )
+
+    if not r.ok:
+        return jsonify(ok=False, error="Telegram не принял сообщение"), 500
+
+    return jsonify(ok=True)
+
 if __name__=="__main__":
     init_db()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")))
