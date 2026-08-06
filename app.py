@@ -26,6 +26,19 @@ def init_db():
         owner INTEGER NOT NULL DEFAULT 0
     )""")
     if OWNER_ID:
+        c.execute("""
+    INSERT INTO products (name, price, description, image)
+    SELECT ?, ?, ?, ?
+    WHERE NOT EXISTS (
+        SELECT 1 FROM products WHERE name = ?
+    )
+""", (
+    "Слойки",
+    100,
+    "Наши слойки супер класс",
+    "",
+    "Слойки"
+))
         c.execute("INSERT OR REPLACE INTO admins(telegram_id,owner) VALUES(?,1)", (OWNER_ID,))
     c.commit(); c.close()
 
