@@ -92,8 +92,9 @@ async function addProduct() {
     const response = await fetch("/api/products", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
-        },
+    "Content-Type": "application/json",
+    "X-Telegram-User-Id": Telegram.WebApp.initDataUnsafe?.user?.id || ""
+},
         body: JSON.stringify(product)
     });
 
