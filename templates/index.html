@@ -225,12 +225,76 @@ function showCart() {
 
       <h2>Итого: ${total} ₽</h2>
 
+      <button onclick="showPayment()" style="
+    width:100%;
+    padding:15px;
+    margin-top:15px;
+    border:none;
+    border-radius:12px;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+">
+    💳 Оформить заказ
+</button>
+
     </div>
   `;
 }
 
 loadProducts();
+  function showPayment() {
+    if (cart.length === 0) {
+        alert("Корзина пуста");
+        return;
+    }
+
+    let total = cart.reduce((sum, product) => sum + Number(product.price), 0);
+    let box = document.getElementById("products");
+
+    box.innerHTML = `
+        <div style="grid-column:1/-1; padding:15px;">
+            <h2>💳 Оплата заказа</h2>
+
+            <p>Сумма к оплате:</p>
+            <h2>${total} ₽</h2>
+
+            <p><b>Перевод по номеру телефона</b></p>
+            <p>🏦 сбер банк</p>
+            <p>📱+7 923 600 20 40</p>
+
+            <label style="display:block; margin:20px 0;">
+                <input type="checkbox" id="terms">
+                Я принимаю условия публичной оферты
+                и политику конфиденциальности
+            </label>
+
+            <button onclick="paymentDone()" style="
+                width:100%;
+                padding:15px;
+                border:none;
+                border-radius:12px;
+                font-size:18px;
+                font-weight:bold;
+            ">
+                ✅ Я оплатил
+            </button>
+        </div>
+    `;
+}
+  function paymentDone() {
+    const terms = document.getElementById("terms");
+
+    if (!terms || !terms.checked) {
+        alert("Сначала примите условия оферты и политику конфиденциальности");
+        return;
+    }
+
+    alert("✅ Спасибо! Информация об оплате отправлена продавцу.");
+}
 </script>
+  
+  
 
 </body>
 </html>
