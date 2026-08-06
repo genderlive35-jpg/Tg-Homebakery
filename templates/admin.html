@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #10151f;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #9ca6b5;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #1b2230;
+            padding: 18px;
+            border-radius: 18px;
+            margin-bottom: 15px;
+        }
+
+        input, textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 90px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #3390ec;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>⚙️ Админ-панель</h1>
+<div class="subtitle">Управление магазином</div>
+
+<div class="card">
+    <h2>➕ Добавить товар</h2>
+
+    <input id="name" placeholder="Название товара">
+
+    <input id="price" type="number" placeholder="Цена ₽">
+
+    <textarea id="description"
+              placeholder="Описание товара"></textarea>
+
+    <input id="image" placeholder="Ссылка на фотографию">
+
+    <button onclick="addProduct()">
+        ➕ Добавить товар
+    </button>
+</div>
+
+<script>
+async function addProduct() {
+    const product = {
+        name: document.getElementById("name").value,
+        price: Number(document.getElementById("price").value),
+        description: document.getElementById("description").value,
+        image: document.getElementById("image").value
+    };
+
+    const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(product)
+    });
+
+    if (response.ok) {
+        alert("✅ Товар добавлен!");
+    } else {
+        alert("❌ Не удалось добавить товар");
+    }
+}
+</script>
+
+</body>
+</html>
