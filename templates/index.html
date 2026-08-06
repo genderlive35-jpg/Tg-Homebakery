@@ -282,7 +282,7 @@ loadProducts();
         </div>
     `;
 }
-  function paymentDone() {
+  async function paymentDone() {
     const terms = document.getElementById("terms");
 
     if (!terms || !terms.checked) {
@@ -290,8 +290,35 @@ loadProducts();
         return;
     }
 
-    alert("✅ Спасибо! Информация об оплате отправлена продавцу.");
-}
+    const total = cart.reduce(
+        (sum, product) => sum + Number(product.price),
+        0
+    );
+
+    try {
+        const response = await fetch("/api/payment-done", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cart: cart,
+                total: total
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.ok) {
+            throw new Error(result.error || "Ошибка отправки");
+        }
+
+        alert("✅ Спасибо! Заказ отправлен продавцу.");
+    } catch (error) {
+        alert("❌ Не удалось отправить заказ. Попробуйте ещё раз.");
+        console.error(error);
+    }
+  }
 </script>
   
   
