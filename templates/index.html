@@ -1,327 +1,332 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <title>Магазин</title>
 
-  <style>
-    body {
-      margin: 0;
-      padding: 0 0 90px;
-      font-family: Arial, sans-serif;
-      background: #10141c;
-      color: white;
-    }
+<meta charset="UTF-8">
 
-    header {
-      padding: 25px 18px;
-    }
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
 
-    h1 {
-      margin: 0;
-      font-size: 30px;
-    }
+<title>Home Bakery</title>
 
-    .subtitle {
-      color: #9ca6b5;
-      margin-top: 6px;
-    }
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    #products {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 12px;
-    }
+<style>
 
-    .product {
-      background: #1b2230;
-      border-radius: 18px;
-      overflow: hidden;
-    }
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #10151f;
+    color: white;
+}
 
-    .product img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      background: #293140;
-    }
+.product,
+.cart {
+    background: #1b2230;
+    padding: 16px;
+    border-radius: 16px;
+    margin: 12px 0;
+}
 
-    .product-info {
-      padding: 13px;
-    }
+img {
+    width: 100%;
+    border-radius: 12px;
+    max-height: 280px;
+    object-fit: cover;
+}
 
-    .price {
-      font-size: 20px;
-      font-weight: bold;
-      margin: 8px 0;
-    }
+button {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 11px;
+    background: #3390ec;
+    color: white;
+    font-weight: bold;
+    margin-top: 8px;
+}
 
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 11px;
-      background: #3390ec;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.muted {
+    color: #9ca6b5;
+}
 
-    .full {
-      width: 100%;
-    }
+</style>
 
-    .empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 70px 20px;
-      color: #9ca6b5;
-    }
-
-    nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      gap: 8px;
-      padding: 10px;
-      background: #1b2230;
-    }
-
-    nav button {
-      flex: 1;
-    }
-  </style>
 </head>
 
 <body>
 
-<header>
-  <h1>🛍 Мой магазин</h1>
-  <div class="subtitle">Выберите товар</div>
-</header>
+<h1>🧁 Home Bakery</h1>
 
-<div id="products"></div>
+<p class="muted">
+    Выберите товары
+</p>
 
-<nav>
-  <button onclick="loadProducts()">🛍 Каталог</button>
-  <button onclick="showCart()">🛒 Корзина</button>
-</nav>
+<div id="products">
+    Загрузка…
+</div>
+
+
+<div class="cart">
+
+<h2>🛒 Корзина</h2>
+
+<div id="cart">
+    Корзина пуста
+</div>
+
+<h3 id="total">
+    Итого: 0 ₽
+</h3>
+
+<button
+    id="pay"
+    disabled
+>
+    Я оплатил(а) — уведомить продавца
+</button>
+
+<p id="result"></p>
+
+</div>
+
 
 <script>
-const tg = window.Telegram.WebApp;
 
-tg.ready();
-tg.expand();
+const tg = window.Telegram?.WebApp;
 
-let cart = [];
+tg?.ready();
+tg?.expand();
+
+
+let basket = [];
+
 
 async function loadProducts() {
 
-  const box = document.getElementById("products");
+    const response =
+        await fetch("/api/products");
 
-  try {
+    const products =
+        await response.json();
 
-    const response = await fetch("/api/products");
-    const products = await response.json();
+    const container =
+        document.getElementById("products");
 
-    if (products.length === 0) {
-      box.innerHTML =
-        '<div class="empty">' +
-        '<h2>Пока нет товаров</h2>' +
-        '<p>Товары появятся здесь после добавления через админ-панель.</p>' +
-        '</div>';
+    container.innerHTML =
+        products.length
+            ? ""
+            : "Товаров пока нет";
 
-      return;
-    }
 
-    box.innerHTML = products.map(product => `
+    products.forEach(product => {
 
-      <div class="product">
+        const element =
+            document.createElement("div");
 
-        ${
-          product.image
-          ? `<img src="${product.image}">`
-          : `<div style="height:150px;background:#293140"></div>`
-        }
+        element.className =
+            "product";
 
-        <div class="product-info">
 
-          <b>${product.name}</b>
+        element.innerHTML = `
 
-          <div class="price">
-            ${product.price} ₽
-          </div>
+            ${
+                product.image
+                    ? `<img src="${product.image}">`
+                    : ""
+            }
 
-          <p>
-            ${product.description || ""}
-          </p>
+            <h2>
+                ${product.name}
+            </h2>
 
-          <button
-            class="full"
-            onclick='addToCart(${JSON.stringify(product)})'>
-            🛒 В корзину
-          </button>
+            <p>
+                ${product.description || ""}
+            </p>
 
-        </div>
-      </div>
+            <b>
+                ${product.price} ₽
+            </b>
 
-    `).join("");
-
-  } catch (error) {
-
-    box.innerHTML =
-      '<div class="empty">Ошибка загрузки магазина</div>';
-
-  }
-}
-
-function addToCart(product) {
-
-  cart.push(product);
-
-  tg.HapticFeedback?.impactOccurred("light");
-
-  alert("Товар добавлен в корзину");
-}
-
-function showCart() {
-
-  const box = document.getElementById("products");
-
-  if (cart.length === 0) {
-
-    box.innerHTML =
-      '<div class="empty"><h2>Корзина пуста</h2></div>';
-
-    return;
-  }
-
-  let total = cart.reduce(
-    (sum, product) => sum + product.price,
-    0
-  );
-
-  box.innerHTML = `
-
-    <div style="
-      grid-column:1/-1;
-      padding:15px;
-    ">
-
-      <h2>🛒 Корзина</h2>
-
-      ${cart.map(product => `
-        <div class="product" style="margin-bottom:10px">
-          <div class="product-info">
-            <b>${product.name}</b>
-            <div>${product.price} ₽</div>
-          </div>
-        </div>
-      `).join("")}
-
-      <h2>Итого: ${total} ₽</h2>
-
-      <button onclick="showPayment()" style="
-    width:100%;
-    padding:15px;
-    margin-top:15px;
-    border:none;
-    border-radius:12px;
-    font-size:18px;
-    font-weight:bold;
-    cursor:pointer;
-">
-    💳 Оформить заказ
-</button>
-
-    </div>
-  `;
-}
-
-loadProducts();
-  function showPayment() {
-    if (cart.length === 0) {
-        alert("Корзина пуста");
-        return;
-    }
-
-    let total = cart.reduce((sum, product) => sum + Number(product.price), 0);
-    let box = document.getElementById("products");
-
-    box.innerHTML = `
-        <div style="grid-column:1/-1; padding:15px;">
-            <h2>💳 Оплата заказа</h2>
-
-            <p>Сумма к оплате:</p>
-            <h2>${total} ₽</h2>
-
-            <p><b>Перевод по номеру телефона</b></p>
-            <p>🏦 сбер банк</p>
-            <p>📱+7 923 600 20 40</p>
-
-            <label style="display:block; margin:20px 0;">
-                <input type="checkbox" id="terms">
-                Я принимаю условия публичной оферты
-                и политику конфиденциальности
-            </label>
-
-            <button onclick="paymentDone()" style="
-                width:100%;
-                padding:15px;
-                border:none;
-                border-radius:12px;
-                font-size:18px;
-                font-weight:bold;
-            ">
-                ✅ Я оплатил
+            <button>
+                Добавить в корзину
             </button>
-        </div>
-    `;
-}
-  async function paymentDone() {
-    const terms = document.getElementById("terms");
+        `;
 
-    if (!terms || !terms.checked) {
-        alert("Сначала примите условия оферты и политику конфиденциальности");
-        return;
+
+        element
+            .querySelector("button")
+            .onclick = () => {
+
+                basket.push(product);
+
+                drawCart();
+            };
+
+
+        container.appendChild(
+            element
+        );
+
+    });
+
+}
+
+
+function drawCart() {
+
+    const cart =
+        document.getElementById("cart");
+
+    const total =
+        basket.reduce(
+            (sum, item) =>
+                sum + Number(item.price),
+            0
+        );
+
+
+    if (!basket.length) {
+
+        cart.innerHTML =
+            "Корзина пуста";
+
+    } else {
+
+        cart.innerHTML =
+            basket.map(
+                (item, index) => `
+
+                    ${item.name}
+                    —
+                    ${item.price} ₽
+
+                    <button
+                        style="width:auto"
+                        onclick="removeItem(${index})"
+                    >
+                        ×
+                    </button>
+
+                `
+            ).join("<br>");
+
     }
 
-    const total = cart.reduce(
-        (sum, product) => sum + Number(product.price),
-        0
+
+    document.getElementById(
+        "total"
+    ).textContent =
+        "Итого: " + total + " ₽";
+
+
+    document.getElementById(
+        "pay"
+    ).disabled =
+        !basket.length;
+
+}
+
+
+window.removeItem =
+function(index) {
+
+    basket.splice(
+        index,
+        1
     );
 
+    drawCart();
+};
+
+
+document.getElementById(
+    "pay"
+).onclick =
+async function() {
+
+    const result =
+        document.getElementById(
+            "result"
+        );
+
+
+    const total =
+        basket.reduce(
+            (sum, item) =>
+                sum + Number(item.price),
+            0
+        );
+
+
+    result.textContent =
+        "Отправляем…";
+
+
     try {
-        const response = await fetch("/api/payment-done", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                cart: cart,
-                total: total
-            })
-        });
 
-        const result = await response.json();
+        const response =
+            await fetch(
+                "/api/payment-done",
+                {
+                    method: "POST",
 
-        if (!response.ok || !result.ok) {
-            throw new Error(result.error || "Ошибка отправки");
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            cart: basket,
+                            total: total
+                        })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Ошибка " +
+                response.status
+            );
+
         }
 
-        alert("✅ Спасибо! Заказ отправлен продавцу.");
+
+        result.textContent =
+            "✅ Продавец получил уведомление";
+
+
+        basket = [];
+
+        drawCart();
+
+
     } catch (error) {
-        alert("❌ Не удалось отправить заказ. Попробуйте ещё раз.");
-        console.error(error);
+
+        result.textContent =
+            "❌ " + error.message;
+
     }
-  }
+
+};
+
+
+loadProducts();
+
 </script>
-  
-  
 
 </body>
+
 </html>
