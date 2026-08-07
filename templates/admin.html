@@ -81,13 +81,49 @@
 </div>
 
 <script>
-async function addProduct() {
-    const product = {
-        name: document.getElementById("name").value,
-        price: Number(document.getElementById("price").value),
-        description: document.getElementById("description").value,
-        image: document.getElementById("image").value
-    };
+    async function addProduct() {
+    const name = document.getElementById("name").value.trim();
+    const price = document.getElementById("price").value;
+    const description = document.getElementById("description").value.trim();
+    const image = document.getElementById("image").value.trim();
+
+    if (!name || !price) {
+        alert("Введите название и цену");
+        return;
+    }
+
+    const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
+
+    if (!userId) {
+        alert("Не удалось получить Telegram ID. Откройте админ-панель через Telegram.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/products", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Telegram-User-Id": String(userId)
+            },
+            body: JSON.stringify({
+                name: name,
+                price: Number(price),
+                description: description,
+                image: image
+            })
+        });
+
+        if (response.ok) {
+            alert("✅ Товар добавлен!");
+            location.reload();
+        } else {
+            alert("❌ Ошибка добавления товара: " + response.status);
+        }
+    } catch (error) {
+        alert("❌ Ошибка: " + error.message);
+    }
+}
 
     const response = await fetch("/api/products", {
         method: "POST",
