@@ -17,6 +17,10 @@ OWNER_ID = int(
 )
 
 
+# =========================
+# БАЗА ДАННЫХ
+# =========================
+
 def db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
@@ -44,9 +48,7 @@ def init_db():
         )
     """)
 
-    # Владелец всегда добавляется
-    # как главный администратор.
-
+    # Владелец магазина
     conn.execute(
         """
         INSERT OR REPLACE INTO admins(
@@ -62,19 +64,20 @@ def init_db():
     conn.close()
 
 
+# =========================
+# TELEGRAM ID
+# =========================
+
 def tg_id():
 
     try:
-
         return int(
             request.headers.get(
                 "X-Telegram-User-Id",
                 "0"
             )
         )
-
     except:
-
         return 0
 
 
@@ -101,9 +104,9 @@ def admin():
     return row
 
 
-# -------------------------
+# =========================
 # СТРАНИЦЫ
-# -------------------------
+# =========================
 
 @app.get("/")
 def index():
@@ -121,9 +124,9 @@ def admin_page():
     )
 
 
-# -------------------------
-# ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ
-# -------------------------
+# =========================
+# ПРОВЕРКА АДМИНА
+# =========================
 
 @app.get("/api/me")
 def me():
@@ -139,9 +142,9 @@ def me():
     )
 
 
-# -------------------------
+# =========================
 # ТОВАРЫ
-# -------------------------
+# =========================
 
 @app.get("/api/products")
 def products():
@@ -220,7 +223,7 @@ def add_product():
             "description",
             ""
         )
-    )
+    ).strip()
 
 
     image = str(
@@ -228,7 +231,7 @@ def add_product():
             "image",
             ""
         )
-    )
+    ).strip()
 
 
     conn = db()
@@ -289,9 +292,9 @@ def delete_product(pid):
     )
 
 
-# -------------------------
+# =========================
 # АДМИНИСТРАТОРЫ
-# -------------------------
+# =========================
 
 @app.get("/api/admins")
 def admins():
@@ -301,10 +304,7 @@ def admins():
     if not row or not row["owner"]:
 
         return jsonify(
-            error=(
-                "Только владелец может "
-                "управлять администраторами"
-            )
+            error="Только владелец может управлять администраторами"
         ), 403
 
 
@@ -314,9 +314,7 @@ def admins():
         dict(x)
         for x in conn.execute(
             """
-            SELECT
-                telegram_id,
-                owner
+            SELECT telegram_id, owner
             FROM admins
             ORDER BY owner DESC
             """
@@ -336,10 +334,7 @@ def add_admin():
     if not row or not row["owner"]:
 
         return jsonify(
-            error=(
-                "Только владелец может "
-                "добавлять администраторов"
-            )
+            error="Только владелец может добавлять администраторов"
         ), 403
 
 
@@ -402,10 +397,7 @@ def remove_admin(uid):
     if not row or not row["owner"]:
 
         return jsonify(
-            error=(
-                "Только владелец может "
-                "удалять администраторов"
-            )
+            error="Только владелец может удалять администраторов"
         ), 403
 
 
@@ -436,10 +428,10 @@ def remove_admin(uid):
     )
 
 
-# -------------------------
+# =========================
 # ПОКУПАТЕЛЬ НАЖАЛ
 # "Я ОПЛАТИЛ(А)"
-# -------------------------
+# =========================
 
 @app.post("/api/payment-done")
 def payment_done():
@@ -470,6 +462,14 @@ def payment_done():
     )
 
 
+    order_id = str(
+        data.get(
+            "order_id",
+            ""
+        )
+    ).strip()
+
+
     if not cart:
 
         return jsonify(
@@ -477,7 +477,9 @@ def payment_done():
         ), 400
 
 
-    # Данные покупателя
+    # -------------------------
+    # ДАННЫЕ ПОКУПАТЕЛЯ
+    # -------------------------
 
     buyer_id = buyer.get(
         "id"
@@ -517,9 +519,7 @@ def payment_done():
 
     if not full_name:
 
-        full_name = (
-            "Не указано"
-        )
+        full_name = "Не указано"
 
 
     if username:
@@ -536,37 +536,55 @@ def payment_done():
         )
 
 
-    if not buyer_id:
-
-        buyer_id_text = (
-            "не получен"
-        )
-
-    else:
+    if buyer_id:
 
         buyer_id_text = str(
             buyer_id
         )
 
+    else:
 
-    # Формируем сообщение
-    # ТОЧНО в нужном формате.
+        buyer_id_text = (
+            "не получен"
+        )
+
+
+    if not order_id:
+
+        order_id = (
+            "HB-"
+            + buyer_id_text
+        )
+
+
+    # =========================
+    # СООБЩЕНИЕ АДМИНИСТРАТОРАМ
+    # =========================
 
     text = (
         "💰 ПОКУПАТЕЛЬ СООБЩИЛ ОБ ОПЛАТЕ\n\n"
     )
 
+
+    text += (
+        f"🧾 Заказ: {order_id}\n\n"
+    )
+
+
     text += (
         f"👤 Покупатель: {full_name}\n"
     )
+
 
     text += (
         f"🔗 Username: {username_text}\n"
     )
 
+
     text += (
         f"🆔 Telegram ID: {buyer_id_text}\n\n"
     )
+
 
     text += (
         "📦 Заказ:\n"
@@ -597,12 +615,14 @@ def payment_done():
 
 
     text += (
-        "\n\n⚠️ Проверьте поступление "
-        "денег перед выдачей товара."
+        "\n\n⚠️ Проверьте поступление денег "
+        "перед выдачей товара."
     )
 
 
-    # Получаем токен бота.
+    # =========================
+    # BOT TOKEN
+    # =========================
 
     bot_token = os.getenv(
         "BOT_TOKEN"
@@ -612,19 +632,17 @@ def payment_done():
     if not bot_token:
 
         return jsonify(
-            error=(
-                "BOT_TOKEN не настроен "
-                "на Render"
-            )
+            error="BOT_TOKEN не настроен на Render"
         ), 500
 
 
-    # Получаем ВСЕХ администраторов,
-    # включая владельца.
+    # =========================
+    # ВСЕ АДМИНИСТРАТОРЫ
+    # =========================
 
     conn = db()
 
-    admin_rows = conn.execute(
+    rows = conn.execute(
         """
         SELECT telegram_id
         FROM admins
@@ -636,12 +654,9 @@ def payment_done():
 
     admin_ids = {
         int(row["telegram_id"])
-        for row in admin_rows
+        for row in rows
     }
 
-
-    # На всякий случай владелец
-    # добавляется отдельно.
 
     admin_ids.add(
         OWNER_ID
@@ -653,8 +668,9 @@ def payment_done():
     failed = []
 
 
-    # Рассылаем сообщение
-    # каждому администратору.
+    # =========================
+    # РАССЫЛКА
+    # =========================
 
     for admin_id in admin_ids:
 
@@ -702,11 +718,8 @@ def payment_done():
 
         return jsonify(
             error=(
-                "Не удалось отправить "
-                "уведомление ни одному "
-                "администратору. "
-                "Администраторы должны "
-                "сначала нажать Start у бота."
+                "Не удалось отправить уведомление администраторам. "
+                "Администраторы должны сначала нажать Start у бота."
             )
         ), 502
 
@@ -714,13 +727,14 @@ def payment_done():
     return jsonify(
         ok=True,
         sent=sent,
-        failed=failed
+        failed=failed,
+        order_id=order_id
     )
 
 
-# -------------------------
+# =========================
 # ЗАПУСК
-# -------------------------
+# =========================
 
 init_db()
 
