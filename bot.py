@@ -1,17 +1,83 @@
 import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, ContextTypes
 
-TOKEN=os.getenv("BOT_TOKEN","")
-WEBAPP_URL=os.getenv("WEBAPP_URL","")
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    WebAppInfo
+)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb=[[InlineKeyboardButton("🛍 Открыть магазин", web_app=WebAppInfo(url=WEBAPP_URL))]]
-    await update.message.reply_text("Добро пожаловать в магазин!", reply_markup=InlineKeyboardMarkup(kb))
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes
+)
 
-if __name__=="__main__":
-    if not TOKEN or not WEBAPP_URL:
-        raise RuntimeError("Укажи BOT_TOKEN и WEBAPP_URL")
-    app=Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start",start))
-    app.run_polling()
+
+TOKEN = os.getenv("BOT_TOKEN")
+
+WEBAPP_URL = os.getenv(
+    "WEBAPP_URL",
+    "https://tg-homebakery.onrender.com"
+).rstrip("/")
+
+
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    keyboard = [
+
+        [
+            InlineKeyboardButton(
+                "🛍 Открыть магазин",
+                web_app=WebAppInfo(
+                    url=WEBAPP_URL
+                )
+            )
+        ],
+
+        [
+            InlineKeyboardButton(
+                "⚙️ Админ-панель",
+                web_app=WebAppInfo(
+                    url=WEBAPP_URL + "/admin"
+                )
+            )
+        ]
+
+    ]
+
+    await update.message.reply_text(
+        "Добро пожаловать в магазин!",
+        reply_markup=InlineKeyboardMarkup(
+            keyboard
+        )
+    )
+
+
+if __name__ == "__main__":
+
+    if not TOKEN:
+        raise RuntimeError(
+            "Не задан BOT_TOKEN"
+        )
+
+    application = (
+        Application
+        .builder()
+        .token(TOKEN)
+        .build()
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "start",
+            start
+        )
+    )
+
+    print("Бот запущен")
+
+    application.run_polling()
