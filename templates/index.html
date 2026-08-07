@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 
 <head>
@@ -10,210 +11,480 @@
     content="width=device-width, initial-scale=1"
 >
 
-<title>Home Bakery</title>
+<title>
+    Home Bakery
+</title>
+
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 
 <style>
 
 body {
+
     margin: 0;
+
     padding: 20px;
-    font-family: Arial, sans-serif;
-    background: #10151f;
-    color: white;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    background:
+        #10151f;
+
+    color:
+        white;
+
 }
+
 
 .product,
 .cart {
-    background: #1b2230;
-    padding: 16px;
-    border-radius: 16px;
-    margin: 12px 0;
+
+    background:
+        #1b2230;
+
+    padding:
+        16px;
+
+    border-radius:
+        16px;
+
+    margin:
+        12px 0;
+
 }
+
 
 img {
-    width: 100%;
-    border-radius: 12px;
-    max-height: 280px;
-    object-fit: cover;
+
+    width:
+        100%;
+
+    border-radius:
+        12px;
+
+    max-height:
+        280px;
+
+    object-fit:
+        cover;
+
 }
+
 
 button {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 11px;
-    background: #3390ec;
-    color: white;
-    font-weight: bold;
-    margin-top: 8px;
+
+    width:
+        100%;
+
+    padding:
+        13px;
+
+    border:
+        none;
+
+    border-radius:
+        11px;
+
+    background:
+        #3390ec;
+
+    color:
+        white;
+
+    font-size:
+        16px;
+
+    font-weight:
+        bold;
+
+    margin-top:
+        8px;
+
 }
 
+
+button:disabled {
+
+    opacity:
+        0.5;
+
+}
+
+
 .muted {
-    color: #9ca6b5;
+
+    color:
+        #9ca6b5;
+
+}
+
+
+.success {
+
+    color:
+        #70df8a;
+
+}
+
+
+.error {
+
+    color:
+        #ff8585;
+
+}
+
+
+.remove {
+
+    width:
+        auto;
+
+    padding:
+        4px 10px;
+
+    margin-left:
+        8px;
+
+    background:
+        #b43b3b;
+
 }
 
 </style>
 
 </head>
 
+
 <body>
 
-<h1>🧁 Home Bakery</h1>
+
+<h1>
+    🧁 Home Bakery
+</h1>
+
 
 <p class="muted">
     Выберите товары
 </p>
 
+
 <div id="products">
+
     Загрузка…
+
 </div>
 
 
 <div class="cart">
 
-<h2>🛒 Корзина</h2>
+
+<h2>
+    🛒 Корзина
+</h2>
+
 
 <div id="cart">
+
     Корзина пуста
+
 </div>
 
+
 <h3 id="total">
+
     Итого: 0 ₽
+
 </h3>
+
 
 <button
     id="pay"
     disabled
 >
+
     Я оплатил(а) — уведомить продавца
+
 </button>
 
-<p id="result"></p>
+
+<p
+    id="result"
+></p>
+
 
 </div>
 
 
 <script>
 
-const tg = window.Telegram?.WebApp;
 
-tg?.ready();
-tg?.expand();
+const tg =
+    window.Telegram?.WebApp;
+
+
+if (tg) {
+
+    tg.ready();
+
+    tg.expand();
+
+}
 
 
 let basket = [];
 
 
-async function loadProducts() {
+/*
+Получаем данные покупателя
+непосредственно из Telegram WebApp.
+*/
 
-    const response =
-        await fetch("/api/products");
-
-    const products =
-        await response.json();
-
-    const container =
-        document.getElementById("products");
-
-    container.innerHTML =
-        products.length
-            ? ""
-            : "Товаров пока нет";
+function getBuyer() {
 
 
-    products.forEach(product => {
-
-        const element =
-            document.createElement("div");
-
-        element.className =
-            "product";
+    const user =
+        tg?.initDataUnsafe
+        ?.user;
 
 
-        element.innerHTML = `
+    if (!user) {
 
-            ${
-                product.image
-                    ? `<img src="${product.image}">`
-                    : ""
-            }
+        return {
 
-            <h2>
-                ${product.name}
-            </h2>
+            id:
+                null,
 
-            <p>
-                ${product.description || ""}
-            </p>
+            first_name:
+                "",
 
-            <b>
-                ${product.price} ₽
-            </b>
+            last_name:
+                "",
 
-            <button>
-                Добавить в корзину
-            </button>
-        `;
+            username:
+                ""
+
+        };
+
+    }
 
 
-        element
-            .querySelector("button")
-            .onclick = () => {
+    return {
 
-                basket.push(product);
+        id:
+            user.id || null,
 
-                drawCart();
-            };
+        first_name:
+            user.first_name || "",
 
+        last_name:
+            user.last_name || "",
 
-        container.appendChild(
-            element
-        );
+        username:
+            user.username || ""
 
-    });
+    };
 
 }
 
 
+/*
+Загрузка товаров
+*/
+
+async function loadProducts() {
+
+
+    const container =
+        document.getElementById(
+            "products"
+        );
+
+
+    try {
+
+
+        const response =
+            await fetch(
+                "/api/products"
+            );
+
+
+        const products =
+            await response.json();
+
+
+        container.innerHTML =
+            products.length
+                ? ""
+                : "Товаров пока нет";
+
+
+        products.forEach(
+            product => {
+
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                element.className =
+                    "product";
+
+
+                let imageHtml =
+                    "";
+
+
+                if (product.image) {
+
+                    imageHtml = `
+
+                        <img
+                            src="${product.image}"
+                            alt="${product.name}"
+                        >
+
+                    `;
+
+                }
+
+
+                element.innerHTML = `
+
+                    ${imageHtml}
+
+                    <h2>
+                        ${product.name}
+                    </h2>
+
+                    <p>
+                        ${product.description || ""}
+                    </p>
+
+                    <b>
+                        ${product.price} ₽
+                    </b>
+
+                    <button>
+                        Добавить в корзину
+                    </button>
+
+                `;
+
+
+                element
+                    .querySelector(
+                        "button"
+                    )
+                    .onclick =
+                    function() {
+
+
+                        basket.push(
+                            product
+                        );
+
+
+                        drawCart();
+
+                    };
+
+
+                container.appendChild(
+                    element
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+
+        container.textContent =
+            "❌ Ошибка загрузки товаров";
+
+
+    }
+
+}
+
+
+/*
+Отображение корзины
+*/
+
 function drawCart() {
 
+
     const cart =
-        document.getElementById("cart");
+        document.getElementById(
+            "cart"
+        );
+
 
     const total =
         basket.reduce(
-            (sum, item) =>
-                sum + Number(item.price),
+            (
+                sum,
+                item
+            ) =>
+                sum
+                +
+                Number(
+                    item.price
+                ),
             0
         );
 
 
     if (!basket.length) {
 
+
         cart.innerHTML =
             "Корзина пуста";
 
+
     } else {
+
 
         cart.innerHTML =
             basket.map(
-                (item, index) => `
 
-                    ${item.name}
-                    —
-                    ${item.price} ₽
+                (
+                    item,
+                    index
+                ) => `
 
-                    <button
-                        style="width:auto"
-                        onclick="removeItem(${index})"
-                    >
-                        ×
-                    </button>
+                    <div>
+
+                        ${item.name}
+
+                        —
+
+                        ${item.price} ₽
+
+                        <button
+                            class="remove"
+                            onclick="removeItem(${index})"
+                        >
+
+                            ×
+
+                        </button>
+
+                    </div>
 
                 `
-            ).join("<br>");
+
+            ).join("");
 
     }
 
@@ -221,7 +492,11 @@ function drawCart() {
     document.getElementById(
         "total"
     ).textContent =
-        "Итого: " + total + " ₽";
+        "Итого: "
+        +
+        total
+        +
+        " ₽";
 
 
     document.getElementById(
@@ -232,22 +507,42 @@ function drawCart() {
 }
 
 
+/*
+Удаление товара
+из корзины
+*/
+
 window.removeItem =
 function(index) {
+
 
     basket.splice(
         index,
         1
     );
 
+
     drawCart();
+
 };
 
+
+/*
+Покупатель нажимает
+"Я оплатил(а)"
+*/
 
 document.getElementById(
     "pay"
 ).onclick =
 async function() {
+
+
+    const button =
+        document.getElementById(
+            "pay"
+        );
+
 
     const result =
         document.getElementById(
@@ -255,68 +550,172 @@ async function() {
         );
 
 
+    if (!basket.length) {
+
+        return;
+
+    }
+
+
+    const buyer =
+        getBuyer();
+
+
+    /*
+    Очень важно:
+
+    Покупатель должен открыть
+    магазин именно внутри Telegram.
+
+    Иначе Telegram не даст
+    ID и username.
+    */
+
+    if (!buyer.id) {
+
+
+        result.className =
+            "error";
+
+
+        result.textContent =
+            "❌ Не удалось получить данные Telegram. Откройте магазин через кнопку внутри бота.";
+
+
+        return;
+
+    }
+
+
     const total =
         basket.reduce(
-            (sum, item) =>
-                sum + Number(item.price),
+
+            (
+                sum,
+                item
+            ) =>
+                sum
+                +
+                Number(
+                    item.price
+                ),
+
             0
+
         );
 
 
+    button.disabled =
+        true;
+
+
+    result.className =
+        "";
+
+
     result.textContent =
-        "Отправляем…";
+        "⏳ Отправляем информацию об оплате…";
 
 
     try {
 
+
         const response =
             await fetch(
+
                 "/api/payment-done",
+
                 {
-                    method: "POST",
+
+                    method:
+                        "POST",
+
 
                     headers: {
+
                         "Content-Type":
                             "application/json"
+
                     },
+
 
                     body:
                         JSON.stringify({
-                            cart: basket,
-                            total: total
+
+                            cart:
+                                basket,
+
+                            total:
+                                total,
+
+                            buyer:
+                                buyer
+
                         })
+
                 }
+
             );
 
 
-        const data =
-            await response.json();
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (error) {}
 
 
         if (!response.ok) {
 
+
             throw new Error(
-                data.error ||
-                "Ошибка " +
-                response.status
+
+                data.error
+                ||
+                (
+                    "Ошибка "
+                    +
+                    response.status
+                )
+
             );
 
         }
 
 
+        result.className =
+            "success";
+
+
         result.textContent =
-            "✅ Продавец получил уведомление";
+            "✅ Спасибо! Информация об оплате отправлена продавцу. Ожидайте подтверждения.";
 
 
         basket = [];
+
 
         drawCart();
 
 
     } catch (error) {
 
+
+        result.className =
+            "error";
+
+
         result.textContent =
-            "❌ " + error.message;
+            "❌ "
+            +
+            error.message;
+
+
+        button.disabled =
+            false;
 
     }
 
@@ -325,7 +724,9 @@ async function() {
 
 loadProducts();
 
+
 </script>
+
 
 </body>
 
