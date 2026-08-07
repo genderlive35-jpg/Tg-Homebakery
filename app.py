@@ -1,170 +1,361 @@
-import os, sqlite3
-from flask import Flask, request, jsonify, render_template, abort
+import os
+import sqlite3
+import requests
+
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
-DB = "shop.db"
 
-# ВАЖНО: перед запуском укажи свой Telegram ID.
+DB = "shop.db"
 OWNER_ID = int(os.getenv("OWNER_ID", "8693950791"))
 
+
 def db():
-    c = sqlite3.connect(DB)
-    c.row_factory = sqlite3.Row
-    return c
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 
 def init_db():
-    c = db()
-    c.execute("""CREATE TABLE IF NOT EXISTS products(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        description TEXT DEFAULT '',
-        image TEXT DEFAULT ''
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS admins(
-        telegram_id INTEGER PRIMARY KEY,
-        owner INTEGER NOT NULL DEFAULT 0
-    )""")
-    if OWNER_ID:
-        c.execute("""
-    INSERT INTO products (name, price, description, image)
-    SELECT ?, ?, ?, ?
-    WHERE NOT EXISTS (
-        SELECT 1 FROM products WHERE name = ?
+    conn = db()
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS products(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            description TEXT DEFAULT '',
+            image TEXT DEFAULT ''
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admins(
+            telegram_id INTEGER PRIMARY KEY,
+            owner INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+
+    conn.execute(
+        "INSERT OR REPLACE INTO admins(telegram_id, owner) VALUES(?, 1)",
+        (OWNER_ID,)
     )
-""", (
-    "Слойки",
-    100,
-    "Наши слойки супер класс",
-    "",
-    "Слойки"
-))
-        c.execute("INSERT OR REPLACE INTO admins(telegram_id,owner) VALUES(?,1)", (OWNER_ID,))
-    c.commit(); c.close()
+
+    conn.commit()
+    conn.close()
+
 
 def tg_id():
-    # Для первой версии ID передаётся из Telegram WebApp JS.
-    # Перед публичным запуском нужно включить серверную проверку initData.
-    try: return int(request.headers.get("X-Telegram-User-Id", "0"))
-    except: return 0
+    try:
+        return int(
+            request.headers.get(
+                "X-Telegram-User-Id",
+                "0"
+            )
+        )
+    except:
+        return 0
+
 
 def admin():
-    uid=tg_id()
-    c=db(); r=c.execute("SELECT owner FROM admins WHERE telegram_id=?", (uid,)).fetchone(); c.close()
-    return r
+    uid = tg_id()
+
+    if not uid:
+        return None
+
+    conn = db()
+
+    row = conn.execute(
+        "SELECT owner FROM admins WHERE telegram_id=?",
+        (uid,)
+    ).fetchone()
+
+    conn.close()
+
+    return row
+
 
 @app.get("/")
 def index():
     return render_template("index.html")
 
+
 @app.get("/admin")
 def admin_page():
     return render_template("admin.html")
 
+
 @app.get("/api/me")
 def me():
-    r=admin()
-    return jsonify(id=tg_id(), admin=bool(r), owner=bool(r and r["owner"]))
+
+    row = admin()
+
+    return jsonify(
+        id=tg_id(),
+        admin=bool(row),
+        owner=bool(row and row["owner"])
+    )
+
 
 @app.get("/api/products")
 def products():
-    c=db(); a=[dict(x) for x in c.execute("SELECT * FROM products ORDER BY id DESC")]; c.close()
-    return jsonify(a)
+
+    conn = db()
+
+    result = [
+        dict(x)
+        for x in conn.execute(
+            "SELECT * FROM products ORDER BY id DESC"
+        )
+    ]
+
+    conn.close()
+
+    return jsonify(result)
+
 
 @app.post("/api/products")
 def add_product():
-    if not admin(): abort(403)
-    j=request.json or {}
-    name=str(j.get("name","")).strip()
-    if not name: return jsonify(error="Введите название"),400
-    try: price=int(j.get("price",0))
-    except: return jsonify(error="Неверная цена"),400
-    c=db()
-    c.execute("INSERT INTO products(name,price,description,image) VALUES(?,?,?,?)",
-              (name,price,str(j.get("description","")),str(j.get("image",""))))
-    c.commit(); c.close()
+
+    if not admin():
+        return jsonify(
+            error="Нет прав администратора"
+        ), 403
+
+    data = request.get_json(silent=True) or {}
+
+    name = str(
+        data.get("name", "")
+    ).strip()
+
+    if not name:
+        return jsonify(
+            error="Введите название"
+        ), 400
+
+    try:
+        price = int(
+            float(data.get("price", 0))
+        )
+    except:
+        return jsonify(
+            error="Неверная цена"
+        ), 400
+
+    conn = db()
+
+    conn.execute(
+        """
+        INSERT INTO products(
+            name,
+            price,
+            description,
+            image
+        )
+        VALUES(?,?,?,?)
+        """,
+        (
+            name,
+            price,
+            str(data.get("description", "")),
+            str(data.get("image", ""))
+        )
+    )
+
+    conn.commit()
+    conn.close()
+
     return jsonify(ok=True)
 
-@app.put("/api/products/<int:pid>")
-def edit_product(pid):
-    if not admin(): abort(403)
-    j=request.json or {}
-    c=db()
-    c.execute("UPDATE products SET name=?,price=?,description=?,image=? WHERE id=?",
-              (str(j.get("name","")),int(j.get("price",0)),str(j.get("description","")),str(j.get("image","")),pid))
-    c.commit(); c.close()
-    return jsonify(ok=True)
 
 @app.delete("/api/products/<int:pid>")
 def delete_product(pid):
-    if not admin(): abort(403)
-    c=db(); c.execute("DELETE FROM products WHERE id=?",(pid,)); c.commit(); c.close()
+
+    if not admin():
+        return jsonify(
+            error="Нет прав администратора"
+        ), 403
+
+    conn = db()
+
+    conn.execute(
+        "DELETE FROM products WHERE id=?",
+        (pid,)
+    )
+
+    conn.commit()
+    conn.close()
+
     return jsonify(ok=True)
+
 
 @app.get("/api/admins")
 def admins():
-    r=admin()
-    if not r or not r["owner"]: abort(403)
-    c=db(); a=[dict(x) for x in c.execute("SELECT telegram_id,owner FROM admins ORDER BY owner DESC")]; c.close()
-    return jsonify(a)
+
+    row = admin()
+
+    if not row or not row["owner"]:
+        return jsonify(
+            error="Только владелец может управлять администраторами"
+        ), 403
+
+    conn = db()
+
+    result = [
+        dict(x)
+        for x in conn.execute(
+            """
+            SELECT telegram_id, owner
+            FROM admins
+            ORDER BY owner DESC
+            """
+        )
+    ]
+
+    conn.close()
+
+    return jsonify(result)
+
 
 @app.post("/api/admins")
 def add_admin():
-    r=admin()
-    if not r or not r["owner"]: abort(403)
-    uid=int((request.json or {}).get("telegram_id",0))
-    if not uid: return jsonify(error="Введите Telegram ID"),400
-    c=db(); c.execute("INSERT OR IGNORE INTO admins(telegram_id,owner) VALUES(?,0)",(uid,)); c.commit(); c.close()
+
+    row = admin()
+
+    if not row or not row["owner"]:
+        return jsonify(
+            error="Только владелец может добавлять администраторов"
+        ), 403
+
+    data = request.get_json(silent=True) or {}
+
+    try:
+        uid = int(
+            data.get("telegram_id", 0)
+        )
+    except:
+        uid = 0
+
+    if not uid:
+        return jsonify(
+            error="Введите Telegram ID"
+        ), 400
+
+    conn = db()
+
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO admins(
+            telegram_id,
+            owner
+        )
+        VALUES(?, 0)
+        """,
+        (uid,)
+    )
+
+    conn.commit()
+    conn.close()
+
     return jsonify(ok=True)
+
 
 @app.delete("/api/admins/<int:uid>")
 def remove_admin(uid):
-    r=admin()
-    if not r or not r["owner"]: abort(403)
-    c=db(); c.execute("DELETE FROM admins WHERE telegram_id=? AND owner=0",(uid,)); c.commit(); c.close()
+
+    row = admin()
+
+    if not row or not row["owner"]:
+        return jsonify(
+            error="Только владелец может удалять администраторов"
+        ), 403
+
+    if uid == OWNER_ID:
+        return jsonify(
+            error="Владельца удалить нельзя"
+        ), 400
+
+    conn = db()
+
+    conn.execute(
+        """
+        DELETE FROM admins
+        WHERE telegram_id=?
+        AND owner=0
+        """,
+        (uid,)
+    )
+
+    conn.commit()
+    conn.close()
+
     return jsonify(ok=True)
 
-init_db()
 
 @app.post("/api/payment-done")
 def payment_done():
-    import requests
 
     data = request.get_json(silent=True) or {}
+
     cart = data.get("cart", [])
     total = data.get("total", 0)
 
     if not cart:
-        return jsonify(ok=False, error="Корзина пуста"), 400
+        return jsonify(
+            error="Корзина пуста"
+        ), 400
 
-    text = "💰 НОВАЯ ОПЛАТА\n\n"
+    token = os.getenv("BOT_TOKEN")
+
+    if not token:
+        return jsonify(
+            error="BOT_TOKEN не настроен"
+        ), 500
+
+    text = "💰 НОВЫЙ ЗАКАЗ\n\n"
 
     for item in cart:
-        text += f"• {item.get('name', 'Товар')} — {item.get('price', 0)} ₽\n"
+
+        text += (
+            f"• {item.get('name', 'Товар')} "
+            f"— {item.get('price', 0)} ₽\n"
+        )
 
     text += f"\n💵 Итого: {total} ₽"
-    text += "\n\n⚠️ Проверь поступление денег в Альфа-Банке."
 
-    bot_token = os.getenv("BOT_TOKEN")
-    owner_id = os.getenv("OWNER_ID")
+    try:
 
-    if not bot_token or not owner_id:
-        return jsonify(ok=False, error="BOT_TOKEN или OWNER_ID не настроен"), 500
+        response = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={
+                "chat_id": OWNER_ID,
+                "text": text
+            },
+            timeout=10
+        )
 
-    r = requests.post(
-        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-        json={
-            "chat_id": owner_id,
-            "text": text
-        },
-        timeout=10
-    )
+        if not response.ok:
+            return jsonify(
+                error="Telegram не принял сообщение"
+            ), 502
 
-    if not r.ok:
-        return jsonify(ok=False, error="Telegram не принял сообщение"), 500
+    except Exception as error:
+
+        return jsonify(
+            error=str(error)
+        ), 502
 
     return jsonify(ok=True)
 
-if __name__=="__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT","5000")))
+
+init_db()
+
+
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=int(
+            os.getenv("PORT", "5000")
+        )
+    )
