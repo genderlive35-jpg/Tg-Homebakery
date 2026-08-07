@@ -5,7 +5,7 @@ app = Flask(__name__)
 DB = "shop.db"
 
 # ВАЖНО: перед запуском укажи свой Telegram ID.
-OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+OWNER_ID = int(os.getenv("OWNER_ID", "8693950791"))
 
 def db():
     c = sqlite3.connect(DB)
