@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель</title>
 
+    <!-- Telegram WebApp API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -54,6 +57,15 @@
             color: white;
             font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+        }
+
+        .result {
+            margin-top: 12px;
         }
     </style>
 </head>
@@ -68,133 +80,222 @@
 
     <input id="name" placeholder="Название товара">
 
-    <input id="price" type="number" placeholder="Цена ₽">
+    <input
+        id="price"
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="Цена ₽"
+    >
 
-    <textarea id="description"
-              placeholder="Описание товара"></textarea>
+    <textarea
+        id="description"
+        placeholder="Описание товара"
+    ></textarea>
 
-    <input id="image" placeholder="Ссылка на фотографию">
+    <input
+        id="image"
+        placeholder="Ссылка на фотографию (необязательно)"
+    >
 
-    <button onclick="addProduct()">
+    <button id="addProductButton" type="button">
         ➕ Добавить товар
     </button>
+
+    <p id="productResult" class="result"></p>
 </div>
 
-<script>
-    async function addProduct() {
-    const name = document.getElementById("name").value.trim();
-    const price = document.getElementById("price").value;
-    const description = document.getElementById("description").value.trim();
-    const image = document.getElementById("image").value.trim();
 
-    if (!name || !price) {
-        alert("Введите название и цену");
-        return;
-    }
-
-    const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
-
-    if (!userId) {
-        alert("Не удалось получить Telegram ID. Откройте админ-панель через Telegram.");
-        return;
-    }
-
-    try {
-        const response = await fetch("/api/products", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Telegram-User-Id": String(userId)
-            },
-            body: JSON.stringify({
-                name: name,
-                price: Number(price),
-                description: description,
-                image: image
-            })
-        });
-
-        if (response.ok) {
-            alert("✅ Товар добавлен!");
-            location.reload();
-        } else {
-            alert("❌ Ошибка добавления товара: " + response.status);
-        }
-    } catch (error) {
-        alert("❌ Ошибка: " + error.message);
-    }
-}
-
-    const response = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-    "Content-Type": "application/json",
-    "X-Telegram-User-Id": Telegram.WebApp.initDataUnsafe?.user?.id || ""
-},
-        body: JSON.stringify(product)
-    });
-
-    if (response.ok) {
-        alert("✅ Товар добавлен!");
-    } else {
-        alert("❌ Не удалось добавить товар");
-    }
-}
-    async function addAdmin() {
-    const input = document.getElementById("newAdminId");
-    const result = document.getElementById("adminResult");
-    const telegramId = input.value.trim();
-
-    if (!telegramId) {
-        result.textContent = "❌ Введите Telegram ID";
-        return;
-    }
-
-    try {
-        const response = await fetch("/api/admins", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                telegram_id: Number(telegramId)
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Не удалось добавить администратора");
-        }
-
-        result.textContent = "✅ Администратор добавлен";
-        input.value = "";
-
-    } catch (error) {
-        result.textContent = "❌ " + error.message;
-    }
-}
-</script>
-
- <div style="margin-top:30px; padding:20px; border:1px solid #444; border-radius:15px;">
+<div class="card">
     <h2>👥 Администраторы</h2>
 
     <input
         id="newAdminId"
         type="number"
         placeholder="Telegram ID нового администратора"
-        style="width:100%; padding:12px; box-sizing:border-box;"
     >
 
-    <button
-        onclick="addAdmin()"
-        style="width:100%; padding:12px; margin-top:10px;"
-    >
+    <button id="addAdminButton" type="button">
         ➕ Добавить администратора
     </button>
 
-    <p id="adminResult"></p>
-</div>   
-    
+    <p id="adminResult" class="result"></p>
+</div>
+
+
+<script>
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
+
+    function getTelegramUserId() {
+        return tg?.initDataUnsafe?.user?.id || null;
+    }
+
+
+    async function addProduct() {
+        const button = document.getElementById("addProductButton");
+        const result = document.getElementById("productResult");
+
+        const name =
+            document.getElementById("name").value.trim();
+
+        const price =
+            document.getElementById("price").value.trim();
+
+        const description =
+            document.getElementById("description").value.trim();
+
+        const image =
+            document.getElementById("image").value.trim();
+
+        if (!name || !price) {
+            result.textContent =
+                "❌ Введите название товара и цену";
+            return;
+        }
+
+        const userId = getTelegramUserId();
+
+        if (!userId) {
+            result.textContent =
+                "❌ Telegram ID не получен. Откройте админ-панель кнопкой внутри Telegram-бота.";
+            return;
+        }
+
+        button.disabled = true;
+        result.textContent = "⏳ Добавляем товар...";
+
+        try {
+            const response = await fetch("/api/products", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Telegram-User-Id": String(userId)
+                },
+
+                body: JSON.stringify({
+                    name: name,
+                    price: Number(price),
+                    description: description,
+                    image: image
+                })
+            });
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (e) {}
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                    "Ошибка сервера " + response.status
+                );
+            }
+
+            result.textContent = "✅ Товар добавлен!";
+
+            document.getElementById("name").value = "";
+            document.getElementById("price").value = "";
+            document.getElementById("description").value = "";
+            document.getElementById("image").value = "";
+
+        } catch (error) {
+            result.textContent =
+                "❌ " + error.message;
+
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    async function addAdmin() {
+        const button =
+            document.getElementById("addAdminButton");
+
+        const input =
+            document.getElementById("newAdminId");
+
+        const result =
+            document.getElementById("adminResult");
+
+        const telegramId = input.value.trim();
+
+        if (!telegramId) {
+            result.textContent =
+                "❌ Введите Telegram ID";
+            return;
+        }
+
+        const userId = getTelegramUserId();
+
+        if (!userId) {
+            result.textContent =
+                "❌ Telegram ID владельца не получен. Откройте панель через Telegram-бота.";
+            return;
+        }
+
+        button.disabled = true;
+        result.textContent =
+            "⏳ Добавляем администратора...";
+
+        try {
+            const response = await fetch("/api/admins", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Telegram-User-Id": String(userId)
+                },
+
+                body: JSON.stringify({
+                    telegram_id: Number(telegramId)
+                })
+            });
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (e) {}
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                    "Ошибка сервера " + response.status
+                );
+            }
+
+            result.textContent =
+                "✅ Администратор добавлен";
+
+            input.value = "";
+
+        } catch (error) {
+            result.textContent =
+                "❌ " + error.message;
+
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+
+    document
+        .getElementById("addProductButton")
+        .addEventListener("click", addProduct);
+
+    document
+        .getElementById("addAdminButton")
+        .addEventListener("click", addAdmin);
+</script>
+
 </body>
 </html>
