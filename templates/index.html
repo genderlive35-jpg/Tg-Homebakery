@@ -11,21 +11,22 @@
     content="width=device-width, initial-scale=1"
 >
 
-<title>
-    Home Bakery
-</title>
-
+<title>Home Bakery</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 
 <style>
 
+* {
+    box-sizing: border-box;
+}
+
 body {
 
     margin: 0;
 
-    padding: 20px;
+    padding: 0;
 
     font-family:
         Arial,
@@ -40,8 +41,102 @@ body {
 }
 
 
-.product,
-.cart {
+.header {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 10;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 16px 18px;
+
+    background:
+        #10151f;
+
+    border-bottom:
+        1px solid #293140;
+
+}
+
+
+.logo {
+
+    font-size:
+        22px;
+
+    font-weight:
+        bold;
+
+}
+
+
+.cart-button {
+
+    width: auto;
+
+    margin: 0;
+
+    padding:
+        10px 14px;
+
+    border-radius:
+        14px;
+
+}
+
+
+.container {
+
+    max-width:
+        720px;
+
+    margin:
+        0 auto;
+
+    padding:
+        18px;
+
+}
+
+
+.tabs {
+
+    display: flex;
+
+    gap: 10px;
+
+    margin-bottom:
+        20px;
+
+}
+
+
+.tab {
+
+    flex: 1;
+
+    background:
+        #1b2230;
+
+}
+
+
+.tab.active {
+
+    background:
+        #3390ec;
+
+}
+
+
+.product {
 
     background:
         #1b2230;
@@ -50,27 +145,55 @@ body {
         16px;
 
     border-radius:
-        16px;
+        18px;
 
-    margin:
-        12px 0;
+    margin-bottom:
+        15px;
 
 }
 
 
-img {
+.product img {
 
     width:
         100%;
 
-    border-radius:
-        12px;
-
     max-height:
-        280px;
+        300px;
 
     object-fit:
         cover;
+
+    border-radius:
+        14px;
+
+    margin-bottom:
+        10px;
+
+}
+
+
+.product h2 {
+
+    margin:
+        5px 0 8px;
+
+}
+
+
+.price {
+
+    display:
+        block;
+
+    margin-top:
+        12px;
+
+    font-size:
+        21px;
+
+    font-weight:
+        bold;
 
 }
 
@@ -87,7 +210,7 @@ button {
         none;
 
     border-radius:
-        11px;
+        12px;
 
     background:
         #3390ec;
@@ -102,7 +225,10 @@ button {
         bold;
 
     margin-top:
-        8px;
+        10px;
+
+    cursor:
+        pointer;
 
 }
 
@@ -111,6 +237,131 @@ button:disabled {
 
     opacity:
         0.5;
+
+}
+
+
+.cart-item {
+
+    background:
+        #1b2230;
+
+    padding:
+        14px;
+
+    border-radius:
+        14px;
+
+    margin-bottom:
+        10px;
+
+}
+
+
+.cart-row {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+
+}
+
+
+.remove {
+
+    width:
+        auto;
+
+    background:
+        #b43b3b;
+
+    padding:
+        8px 12px;
+
+    margin:
+        0;
+
+}
+
+
+.total {
+
+    font-size:
+        24px;
+
+    font-weight:
+        bold;
+
+    margin:
+        20px 0;
+
+}
+
+
+.payment {
+
+    background:
+        #1b2230;
+
+    border-radius:
+        18px;
+
+    padding:
+        18px;
+
+    margin-top:
+        18px;
+
+}
+
+
+.phone {
+
+    background:
+        #10151f;
+
+    padding:
+        14px;
+
+    border-radius:
+        12px;
+
+    font-size:
+        22px;
+
+    font-weight:
+        bold;
+
+    text-align:
+        center;
+
+    margin:
+        12px 0;
+
+}
+
+
+.order-code {
+
+    background:
+        #10151f;
+
+    padding:
+        14px;
+
+    border-radius:
+        12px;
+
+    margin:
+        12px 0;
 
 }
 
@@ -139,19 +390,24 @@ button:disabled {
 }
 
 
-.remove {
+.hidden {
 
-    width:
-        auto;
+    display:
+        none;
+
+}
+
+
+.empty {
+
+    text-align:
+        center;
 
     padding:
-        4px 10px;
+        40px 10px;
 
-    margin-left:
-        8px;
-
-    background:
-        #b43b3b;
+    color:
+        #9ca6b5;
 
 }
 
@@ -163,13 +419,68 @@ button:disabled {
 <body>
 
 
+<div class="header">
+
+    <div class="logo">
+        🧁 Home Bakery
+    </div>
+
+
+    <button
+        class="cart-button"
+        onclick="showCart()"
+    >
+
+        🛒 Корзина
+        <span id="cartCount">
+            0
+        </span>
+
+    </button>
+
+</div>
+
+
+<div class="container">
+
+
+<div class="tabs">
+
+    <button
+        id="catalogTab"
+        class="tab active"
+        onclick="showCatalog()"
+    >
+        🧁 Каталог
+    </button>
+
+
+    <button
+        id="cartTab"
+        class="tab"
+        onclick="showCart()"
+    >
+        🛒 Корзина
+    </button>
+
+</div>
+
+
+<!-- ======================
+КАТАЛОГ
+====================== -->
+
+
+<section id="catalogPage">
+
+
 <h1>
-    🧁 Home Bakery
+    Каталог
 </h1>
 
 
 <p class="muted">
-    Выберите товары
+    Выберите то, что хотите заказать
 </p>
 
 
@@ -180,41 +491,135 @@ button:disabled {
 </div>
 
 
-<div class="cart">
+</section>
 
 
-<h2>
+<!-- ======================
+КОРЗИНА
+====================== -->
+
+
+<section
+    id="cartPage"
+    class="hidden"
+>
+
+
+<h1>
     🛒 Корзина
-</h2>
+</h1>
 
 
-<div id="cart">
+<div id="cartItems">
 
     Корзина пуста
 
 </div>
 
 
-<h3 id="total">
+<div
+    id="checkout"
+    class="hidden"
+>
+
+
+<div
+    id="total"
+    class="total"
+>
 
     Итого: 0 ₽
 
-</h3>
+</div>
+
+
+<div class="payment">
+
+
+<h2>
+    💳 Оплата
+</h2>
+
+
+<p>
+    Переведите итоговую сумму
+    по номеру телефона:
+</p>
+
+
+<div class="phone">
+
+    +7 923 600-20-40
+
+</div>
+
+
+<p class="muted">
+
+    Банк: Сбербанк
+
+</p>
 
 
 <button
-    id="pay"
-    disabled
+    onclick="copyPhone()"
 >
 
-    Я оплатил(а) — уведомить продавца
+    📋 Скопировать номер
 
 </button>
 
 
-<p
-    id="result"
-></p>
+<div class="order-code">
+
+
+<b>
+    Ваш номер заказа:
+</b>
+
+
+<div
+    id="orderId"
+    style="
+        font-size:20px;
+        margin-top:8px;
+    "
+>
+</div>
+
+
+</div>
+
+
+<p class="muted">
+
+    После перевода нажмите кнопку ниже.
+
+    Администратор проверит поступление денег.
+
+</p>
+
+
+<button
+    id="paidButton"
+    onclick="paymentDone()"
+>
+
+    ✅ Я оплатил(а)
+
+</button>
+
+
+<p id="result"></p>
+
+
+</div>
+
+
+</div>
+
+
+</section>
 
 
 </div>
@@ -240,8 +645,64 @@ let basket = [];
 
 
 /*
-Получаем данные покупателя
-непосредственно из Telegram WebApp.
+Сохраняем корзину,
+чтобы она не исчезала,
+если пользователь переключил страницу.
+*/
+
+try {
+
+    basket =
+        JSON.parse(
+            localStorage.getItem(
+                "homebakery_cart"
+            )
+            ||
+            "[]"
+        );
+
+} catch {
+
+    basket = [];
+
+}
+
+
+/*
+Создаём номер заказа.
+*/
+
+let orderId =
+    localStorage.getItem(
+        "homebakery_order_id"
+    );
+
+
+if (!orderId) {
+
+    orderId =
+        "HB-"
+        +
+        Date.now()
+            .toString()
+            .slice(-8);
+
+    localStorage.setItem(
+        "homebakery_order_id",
+        orderId
+    );
+
+}
+
+
+document.getElementById(
+    "orderId"
+).textContent =
+    orderId;
+
+
+/*
+Получаем покупателя из Telegram.
 */
 
 function getBuyer() {
@@ -293,7 +754,117 @@ function getBuyer() {
 
 
 /*
-Загрузка товаров
+Сохранение корзины.
+*/
+
+function saveCart() {
+
+    localStorage.setItem(
+        "homebakery_cart",
+        JSON.stringify(
+            basket
+        )
+    );
+
+
+    updateCartCount();
+
+}
+
+
+/*
+Количество товаров.
+*/
+
+function updateCartCount() {
+
+    document.getElementById(
+        "cartCount"
+    ).textContent =
+        basket.length;
+
+}
+
+
+/*
+Каталог.
+*/
+
+function showCatalog() {
+
+
+    document.getElementById(
+        "catalogPage"
+    ).classList.remove(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "cartPage"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "catalogTab"
+    ).classList.add(
+        "active"
+    );
+
+
+    document.getElementById(
+        "cartTab"
+    ).classList.remove(
+        "active"
+    );
+
+}
+
+
+/*
+Корзина.
+*/
+
+function showCart() {
+
+
+    document.getElementById(
+        "catalogPage"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "cartPage"
+    ).classList.remove(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "catalogTab"
+    ).classList.remove(
+        "active"
+    );
+
+
+    document.getElementById(
+        "cartTab"
+    ).classList.add(
+        "active"
+    );
+
+
+    drawCart();
+
+}
+
+
+/*
+Загрузка каталога.
 */
 
 async function loadProducts() {
@@ -319,9 +890,17 @@ async function loadProducts() {
 
 
         container.innerHTML =
-            products.length
-                ? ""
-                : "Товаров пока нет";
+            "";
+
+
+        if (!products.length) {
+
+            container.innerHTML =
+                '<div class="empty">Товаров пока нет</div>';
+
+            return;
+
+        }
 
 
         products.forEach(
@@ -348,7 +927,7 @@ async function loadProducts() {
 
                         <img
                             src="${product.image}"
-                            alt="${product.name}"
+                            alt=""
                         >
 
                     `;
@@ -364,16 +943,16 @@ async function loadProducts() {
                         ${product.name}
                     </h2>
 
-                    <p>
+                    <p class="muted">
                         ${product.description || ""}
                     </p>
 
-                    <b>
+                    <span class="price">
                         ${product.price} ₽
-                    </b>
+                    </span>
 
                     <button>
-                        Добавить в корзину
+                        ➕ Добавить в корзину
                     </button>
 
                 `;
@@ -392,7 +971,17 @@ async function loadProducts() {
                         );
 
 
-                        drawCart();
+                        saveCart();
+
+
+                        if (tg) {
+
+                            tg.HapticFeedback
+                                ?.impactOccurred(
+                                    "light"
+                                );
+
+                        }
 
                     };
 
@@ -408,8 +997,8 @@ async function loadProducts() {
     } catch (error) {
 
 
-        container.textContent =
-            "❌ Ошибка загрузки товаров";
+        container.innerHTML =
+            '<div class="error">❌ Не удалось загрузить каталог</div>';
 
 
     }
@@ -418,75 +1007,145 @@ async function loadProducts() {
 
 
 /*
-Отображение корзины
+Отображение корзины.
 */
 
 function drawCart() {
 
 
-    const cart =
+    const container =
         document.getElementById(
-            "cart"
+            "cartItems"
         );
 
 
-    const total =
-        basket.reduce(
-            (
-                sum,
-                item
-            ) =>
-                sum
-                +
-                Number(
-                    item.price
-                ),
-            0
+    const checkout =
+        document.getElementById(
+            "checkout"
         );
 
 
     if (!basket.length) {
 
 
-        cart.innerHTML =
-            "Корзина пуста";
+        container.innerHTML =
+            '<div class="empty">🛒 Корзина пока пуста</div>';
 
 
-    } else {
+        checkout.classList.add(
+            "hidden"
+        );
 
 
-        cart.innerHTML =
-            basket.map(
+        updateCartCount();
 
-                (
-                    item,
-                    index
-                ) => `
+        return;
+
+    }
+
+
+    checkout.classList.remove(
+        "hidden"
+    );
+
+
+    container.innerHTML =
+        "";
+
+
+    basket.forEach(
+        (
+            item,
+            index
+        ) => {
+
+
+            const element =
+                document.createElement(
+                    "div"
+                );
+
+
+            element.className =
+                "cart-item";
+
+
+            element.innerHTML = `
+
+                <div class="cart-row">
 
                     <div>
 
-                        ${item.name}
+                        <b>
+                            ${item.name}
+                        </b>
 
-                        —
+                        <br>
 
-                        ${item.price} ₽
-
-                        <button
-                            class="remove"
-                            onclick="removeItem(${index})"
-                        >
-
-                            ×
-
-                        </button>
+                        <span class="muted">
+                            ${item.price} ₽
+                        </span>
 
                     </div>
 
-                `
 
-            ).join("");
+                    <button
+                        class="remove"
+                    >
+                        ×
+                    </button>
 
-    }
+                </div>
+
+            `;
+
+
+            element
+                .querySelector(
+                    "button"
+                )
+                .onclick =
+                function() {
+
+
+                    basket.splice(
+                        index,
+                        1
+                    );
+
+
+                    saveCart();
+
+                    drawCart();
+
+                };
+
+
+            container.appendChild(
+                element
+            );
+
+        }
+    );
+
+
+    const total =
+        basket.reduce(
+
+            (
+                sum,
+                item
+            ) =>
+
+                sum
+                +
+                Number(
+                    item.price
+                ),
+
+            0
+
+        );
 
 
     document.getElementById(
@@ -499,54 +1158,84 @@ function drawCart() {
         " ₽";
 
 
-    document.getElementById(
-        "pay"
-    ).disabled =
-        !basket.length;
+    updateCartCount();
 
 }
 
 
 /*
-Удаление товара
-из корзины
+Копирование телефона.
 */
 
-window.removeItem =
-function(index) {
+async function copyPhone() {
 
 
-    basket.splice(
-        index,
-        1
-    );
+    const phone =
+        "+79236002040";
 
 
-    drawCart();
+    try {
 
-};
+
+        await navigator.clipboard
+            .writeText(
+                phone
+            );
+
+
+        if (tg) {
+
+            tg.showAlert(
+                "Номер телефона скопирован"
+            );
+
+        } else {
+
+            alert(
+                "Номер телефона скопирован"
+            );
+
+        }
+
+
+    } catch {
+
+
+        if (tg) {
+
+            tg.showAlert(
+                phone
+            );
+
+        } else {
+
+            alert(
+                phone
+            );
+
+        }
+
+    }
+
+}
 
 
 /*
-Покупатель нажимает
-"Я оплатил(а)"
+Нажатие "Я оплатил(а)".
 */
 
-document.getElementById(
-    "pay"
-).onclick =
-async function() {
-
-
-    const button =
-        document.getElementById(
-            "pay"
-        );
+async function paymentDone() {
 
 
     const result =
         document.getElementById(
             "result"
+        );
+
+
+    const button =
+        document.getElementById(
+            "paidButton"
         );
 
 
@@ -561,16 +1250,6 @@ async function() {
         getBuyer();
 
 
-    /*
-    Очень важно:
-
-    Покупатель должен открыть
-    магазин именно внутри Telegram.
-
-    Иначе Telegram не даст
-    ID и username.
-    */
-
     if (!buyer.id) {
 
 
@@ -579,7 +1258,7 @@ async function() {
 
 
         result.textContent =
-            "❌ Не удалось получить данные Telegram. Откройте магазин через кнопку внутри бота.";
+            "❌ Откройте магазин через кнопку внутри Telegram-бота.";
 
 
         return;
@@ -594,6 +1273,7 @@ async function() {
                 sum,
                 item
             ) =>
+
                 sum
                 +
                 Number(
@@ -649,7 +1329,10 @@ async function() {
                                 total,
 
                             buyer:
-                                buyer
+                                buyer,
+
+                            order_id:
+                                orderId
 
                         })
 
@@ -666,7 +1349,7 @@ async function() {
             data =
                 await response.json();
 
-        } catch (error) {}
+        } catch {}
 
 
         if (!response.ok) {
@@ -695,7 +1378,25 @@ async function() {
             "✅ Спасибо! Информация об оплате отправлена продавцу. Ожидайте подтверждения.";
 
 
+        /*
+        После успешной отправки
+        очищаем корзину.
+        */
+
         basket = [];
+
+
+        saveCart();
+
+
+        /*
+        Следующему заказу
+        будет присвоен новый номер.
+        */
+
+        localStorage.removeItem(
+            "homebakery_order_id"
+        );
 
 
         drawCart();
@@ -719,10 +1420,18 @@ async function() {
 
     }
 
-};
+}
 
+
+/*
+Запуск.
+*/
+
+updateCartCount();
 
 loadProducts();
+
+showCatalog();
 
 
 </script>
