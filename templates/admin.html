@@ -1,301 +1,780 @@
 <!DOCTYPE html>
+
 <html lang="ru">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель</title>
 
-    <!-- Telegram WebApp API -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta charset="UTF-8">
 
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background: #10151f;
-            color: white;
-        }
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
 
-        h1 {
-            margin-bottom: 5px;
-        }
+<title>
+    Админ-панель
+</title>
 
-        .subtitle {
-            color: #9ca6b5;
-            margin-bottom: 25px;
-        }
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-        .card {
-            background: #1b2230;
-            padding: 18px;
-            border-radius: 18px;
-            margin-bottom: 15px;
-        }
+<style>
 
-        input, textarea {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 13px;
-            margin-top: 8px;
-            margin-bottom: 12px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-        }
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #10151f;
+    color: white;
+}
 
-        textarea {
-            min-height: 90px;
-        }
+.card {
+    background: #1b2230;
+    padding: 18px;
+    border-radius: 18px;
+    margin: 15px 0;
+}
 
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            background: #3390ec;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+input,
+textarea,
+button {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px;
+    margin: 7px 0;
+    border: none;
+    border-radius: 11px;
+    font-size: 16px;
+}
 
-        button:disabled {
-            opacity: 0.6;
-        }
+textarea {
+    min-height: 90px;
+}
 
-        .result {
-            margin-top: 12px;
-        }
-    </style>
+button {
+    background: #3390ec;
+    color: white;
+    font-weight: bold;
+}
+
+.danger {
+    background: #b43b3b;
+}
+
+.item {
+    border-top: 1px solid #444;
+    padding: 12px 0;
+}
+
+.muted {
+    color: #9ca6b5;
+}
+
+</style>
+
 </head>
+
 
 <body>
 
-<h1>⚙️ Админ-панель TEST123</h1>
-<div class="subtitle">Управление магазином</div>
+
+<h1>
+    ⚙️ Админ-панель
+</h1>
+
+
+<p
+    id="me"
+    class="muted"
+>
+    Проверяем Telegram ID…
+</p>
+
 
 <div class="card">
-    <h2>➕ Добавить товар</h2>
 
-    <input id="name" placeholder="Название товара">
+<h2>
+    ➕ Добавить товар
+</h2>
 
-    <input
-        id="price"
-        type="number"
-        min="0"
-        step="0.01"
-        placeholder="Цена ₽"
-    >
 
-    <textarea
-        id="description"
-        placeholder="Описание товара"
-    ></textarea>
+<input
+    id="name"
+    placeholder="Название товара"
+>
 
-    <input
-        id="image"
-        placeholder="Ссылка на фотографию (необязательно)"
-    >
 
-    <button id="addProductButton" type="button">
-        ➕ Добавить товар
-    </button>
+<input
+    id="price"
+    type="number"
+    placeholder="Цена ₽"
+>
 
-    <p id="productResult" class="result"></p>
+
+<textarea
+    id="description"
+    placeholder="Описание товара"
+></textarea>
+
+
+<input
+    id="image"
+    placeholder="Ссылка на фотографию"
+>
+
+
+<button
+    onclick="addProduct()"
+>
+    ➕ Добавить товар
+</button>
+
+
+<p id="productResult"></p>
+
+
 </div>
 
 
 <div class="card">
-    <h2>👥 Администраторы</h2>
 
-    <input
-        id="newAdminId"
-        type="number"
-        placeholder="Telegram ID нового администратора"
-    >
+<h2>
+    📦 Товары
+</h2>
 
-    <button id="addAdminButton" type="button">
-        ➕ Добавить администратора
-    </button>
+<div id="products">
+    Загрузка…
+</div>
 
-    <p id="adminResult" class="result"></p>
+</div>
+
+
+<div
+    class="card"
+    id="adminBox"
+    style="display:none"
+>
+
+<h2>
+    👥 Администраторы
+</h2>
+
+
+<input
+    id="newAdminId"
+    type="number"
+    placeholder="Telegram ID нового администратора"
+>
+
+
+<button
+    onclick="addAdmin()"
+>
+    ➕ Добавить администратора
+</button>
+
+
+<p id="adminResult"></p>
+
+
+<div id="admins"></div>
+
+
 </div>
 
 
 <script>
-    const tg = window.Telegram?.WebApp;
 
-    if (tg) {
-        tg.ready();
-        tg.expand();
-    }
-
-    function getTelegramUserId() {
-        return tg?.initDataUnsafe?.user?.id || null;
-    }
+const tg =
+    window.Telegram?.WebApp;
 
 
-    async function addProduct() {
-        const button = document.getElementById("addProductButton");
-        const result = document.getElementById("productResult");
+tg?.ready();
+tg?.expand();
 
-        const name =
-            document.getElementById("name").value.trim();
 
-        const price =
-            document.getElementById("price").value.trim();
+function getUserId() {
 
-        const description =
-            document.getElementById("description").value.trim();
+    const id =
+        tg?.initDataUnsafe
+        ?.user
+        ?.id;
 
-        const image =
-            document.getElementById("image").value.trim();
+    return id
+        ? String(id)
+        : "";
 
-        if (!name || !price) {
-            result.textContent =
-                "❌ Введите название товара и цену";
-            return;
-        }
+}
 
-        const userId = getTelegramUserId();
 
-        if (!userId) {
-            result.textContent =
-                "❌ Telegram ID не получен. Откройте админ-панель кнопкой внутри Telegram-бота.";
-            return;
-        }
+function headers() {
 
-        button.disabled = true;
-        result.textContent = "⏳ Добавляем товар...";
+    return {
 
-        try {
-            const response = await fetch("/api/products", {
-                method: "POST",
+        "Content-Type":
+            "application/json",
 
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Telegram-User-Id": String(userId)
-                },
+        "X-Telegram-User-Id":
+            getUserId()
 
-                body: JSON.stringify({
-                    name: name,
-                    price: Number(price),
-                    description: description,
-                    image: image
-                })
-            });
+    };
 
-            let data = {};
+}
 
-            try {
-                data = await response.json();
-            } catch (e) {}
 
-            if (!response.ok) {
-                throw new Error(
-                    data.error ||
-                    "Ошибка сервера " + response.status
-                );
-            }
+async function parseResponse(
+    response
+) {
 
-            result.textContent = "✅ Товар добавлен!";
+    let data = {};
 
-            document.getElementById("name").value = "";
-            document.getElementById("price").value = "";
-            document.getElementById("description").value = "";
-            document.getElementById("image").value = "";
+    try {
 
-        } catch (error) {
-            result.textContent =
-                "❌ " + error.message;
+        data =
+            await response.json();
 
-        } finally {
-            button.disabled = false;
-        }
+    } catch (error) {}
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.error ||
+            "Ошибка " +
+            response.status
+        );
+
     }
 
 
-    async function addAdmin() {
-        const button =
-            document.getElementById("addAdminButton");
+    return data;
 
-        const input =
-            document.getElementById("newAdminId");
+}
 
-        const result =
-            document.getElementById("adminResult");
 
-        const telegramId = input.value.trim();
+async function checkMe() {
 
-        if (!telegramId) {
-            result.textContent =
-                "❌ Введите Telegram ID";
-            return;
+    const info =
+        document.getElementById(
+            "me"
+        );
+
+
+    if (!getUserId()) {
+
+        info.textContent =
+            "❌ Откройте админ-панель кнопкой внутри Telegram-бота";
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/me",
+                {
+                    headers:
+                        headers()
+                }
+            );
+
+
+        const data =
+            await parseResponse(
+                response
+            );
+
+
+        info.textContent =
+            "Telegram ID: " +
+            data.id +
+            (
+                data.owner
+                    ? " • 👑 Владелец"
+                    : data.admin
+                    ? " • Администратор"
+                    : " • Нет прав"
+            );
+
+
+        if (data.owner) {
+
+            document.getElementById(
+                "adminBox"
+            ).style.display =
+                "block";
+
+            loadAdmins();
+
         }
 
-        const userId = getTelegramUserId();
 
-        if (!userId) {
-            result.textContent =
-                "❌ Telegram ID владельца не получен. Откройте панель через Telegram-бота.";
-            return;
-        }
+    } catch (error) {
 
-        button.disabled = true;
+        info.textContent =
+            "❌ " +
+            error.message;
+
+    }
+
+}
+
+
+async function addProduct() {
+
+    const result =
+        document.getElementById(
+            "productResult"
+        );
+
+
+    const product = {
+
+        name:
+            document.getElementById(
+                "name"
+            ).value.trim(),
+
+        price:
+            document.getElementById(
+                "price"
+            ).value,
+
+        description:
+            document.getElementById(
+                "description"
+            ).value.trim(),
+
+        image:
+            document.getElementById(
+                "image"
+            ).value.trim()
+
+    };
+
+
+    if (!product.name) {
+
         result.textContent =
-            "⏳ Добавляем администратора...";
+            "❌ Введите название";
 
-        try {
-            const response = await fetch("/api/admins", {
-                method: "POST",
+        return;
 
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Telegram-User-Id": String(userId)
-                },
-
-                body: JSON.stringify({
-                    telegram_id: Number(telegramId)
-                })
-            });
-
-            let data = {};
-
-            try {
-                data = await response.json();
-            } catch (e) {}
-
-            if (!response.ok) {
-                throw new Error(
-                    data.error ||
-                    "Ошибка сервера " + response.status
-                );
-            }
-
-            result.textContent =
-                "✅ Администратор добавлен";
-
-            input.value = "";
-
-        } catch (error) {
-            result.textContent =
-                "❌ " + error.message;
-
-        } finally {
-            button.disabled = false;
-        }
     }
 
 
-    document
-        .getElementById("addProductButton")
-        .addEventListener("click", addProduct);
+    if (!product.price) {
 
-    document
-        .getElementById("addAdminButton")
-        .addEventListener("click", addAdmin);
+        result.textContent =
+            "❌ Введите цену";
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/products",
+                {
+
+                    method:
+                        "POST",
+
+                    headers:
+                        headers(),
+
+                    body:
+                        JSON.stringify(
+                            product
+                        )
+
+                }
+            );
+
+
+        await parseResponse(
+            response
+        );
+
+
+        result.textContent =
+            "✅ Товар добавлен";
+
+
+        document.getElementById(
+            "name"
+        ).value = "";
+
+        document.getElementById(
+            "price"
+        ).value = "";
+
+        document.getElementById(
+            "description"
+        ).value = "";
+
+        document.getElementById(
+            "image"
+        ).value = "";
+
+
+        loadProducts();
+
+
+    } catch (error) {
+
+        result.textContent =
+            "❌ " +
+            error.message;
+
+    }
+
+}
+
+
+async function loadProducts() {
+
+    const container =
+        document.getElementById(
+            "products"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/products"
+            );
+
+
+        const products =
+            await response.json();
+
+
+        container.innerHTML =
+            products.length
+                ? ""
+                : "Товаров пока нет";
+
+
+        products.forEach(
+            product => {
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                element.className =
+                    "item";
+
+
+                element.innerHTML = `
+
+                    <b>
+                        ${product.name}
+                    </b>
+
+                    —
+                    ${product.price} ₽
+
+                    <br>
+
+                    ${product.description || ""}
+
+                    <button
+                        class="danger"
+                    >
+                        🗑 Удалить
+                    </button>
+                `;
+
+
+                element
+                    .querySelector(
+                        "button"
+                    )
+                    .onclick =
+                    async () => {
+
+                        try {
+
+                            const response =
+                                await fetch(
+                                    "/api/products/" +
+                                    product.id,
+                                    {
+
+                                        method:
+                                            "DELETE",
+
+                                        headers:
+                                            headers()
+
+                                    }
+                                );
+
+
+                            await parseResponse(
+                                response
+                            );
+
+
+                            loadProducts();
+
+
+                        } catch (error) {
+
+                            alert(
+                                error.message
+                            );
+
+                        }
+
+                    };
+
+
+                container.appendChild(
+                    element
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        container.textContent =
+            "❌ " +
+            error.message;
+
+    }
+
+}
+
+
+async function addAdmin() {
+
+    const result =
+        document.getElementById(
+            "adminResult"
+        );
+
+
+    const telegramId =
+        document.getElementById(
+            "newAdminId"
+        ).value.trim();
+
+
+    if (!telegramId) {
+
+        result.textContent =
+            "❌ Введите Telegram ID";
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/admins",
+                {
+
+                    method:
+                        "POST",
+
+                    headers:
+                        headers(),
+
+                    body:
+                        JSON.stringify({
+                            telegram_id:
+                                telegramId
+                        })
+
+                }
+            );
+
+
+        await parseResponse(
+            response
+        );
+
+
+        result.textContent =
+            "✅ Администратор добавлен";
+
+
+        document.getElementById(
+            "newAdminId"
+        ).value = "";
+
+
+        loadAdmins();
+
+
+    } catch (error) {
+
+        result.textContent =
+            "❌ " +
+            error.message;
+
+    }
+
+}
+
+
+async function loadAdmins() {
+
+    const container =
+        document.getElementById(
+            "admins"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/admins",
+                {
+                    headers:
+                        headers()
+                }
+            );
+
+
+        const admins =
+            await parseResponse(
+                response
+            );
+
+
+        container.innerHTML =
+            "";
+
+
+        admins.forEach(
+            admin => {
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                element.className =
+                    "item";
+
+
+                element.textContent =
+                    admin.telegram_id +
+                    (
+                        admin.owner
+                            ? " 👑 Владелец"
+                            : ""
+                    );
+
+
+                if (!admin.owner) {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.className =
+                        "danger";
+
+
+                    button.textContent =
+                        "Удалить администратора";
+
+
+                    button.onclick =
+                    async () => {
+
+                        try {
+
+                            const response =
+                                await fetch(
+                                    "/api/admins/" +
+                                    admin.telegram_id,
+                                    {
+
+                                        method:
+                                            "DELETE",
+
+                                        headers:
+                                            headers()
+
+                                    }
+                                );
+
+
+                            await parseResponse(
+                                response
+                            );
+
+
+                            loadAdmins();
+
+
+                        } catch (error) {
+
+                            alert(
+                                error.message
+                            );
+
+                        }
+
+                    };
+
+
+                    element.appendChild(
+                        button
+                    );
+
+                }
+
+
+                container.appendChild(
+                    element
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        container.textContent =
+            "❌ " +
+            error.message;
+
+    }
+
+}
+
+
+checkMe();
+loadProducts();
+
 </script>
 
+
 </body>
+
 </html>
