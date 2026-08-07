@@ -4,10 +4,17 @@ import requests
 
 from flask import Flask, request, jsonify, render_template
 
+
 app = Flask(__name__)
 
 DB = "shop.db"
-OWNER_ID = int(os.getenv("OWNER_ID", "8693950791"))
+
+OWNER_ID = int(
+    os.getenv(
+        "OWNER_ID",
+        "8693950791"
+    )
+)
 
 
 def db():
@@ -17,6 +24,7 @@ def db():
 
 
 def init_db():
+
     conn = db()
 
     conn.execute("""
@@ -36,8 +44,17 @@ def init_db():
         )
     """)
 
+    # Владелец всегда добавляется
+    # как главный администратор.
+
     conn.execute(
-        "INSERT OR REPLACE INTO admins(telegram_id, owner) VALUES(?, 1)",
+        """
+        INSERT OR REPLACE INTO admins(
+            telegram_id,
+            owner
+        )
+        VALUES(?, 1)
+        """,
         (OWNER_ID,)
     )
 
@@ -46,18 +63,23 @@ def init_db():
 
 
 def tg_id():
+
     try:
+
         return int(
             request.headers.get(
                 "X-Telegram-User-Id",
                 "0"
             )
         )
+
     except:
+
         return 0
 
 
 def admin():
+
     uid = tg_id()
 
     if not uid:
@@ -66,7 +88,11 @@ def admin():
     conn = db()
 
     row = conn.execute(
-        "SELECT owner FROM admins WHERE telegram_id=?",
+        """
+        SELECT owner
+        FROM admins
+        WHERE telegram_id=?
+        """,
         (uid,)
     ).fetchone()
 
@@ -75,15 +101,29 @@ def admin():
     return row
 
 
+# -------------------------
+# СТРАНИЦЫ
+# -------------------------
+
 @app.get("/")
 def index():
-    return render_template("index.html")
+
+    return render_template(
+        "index.html"
+    )
 
 
 @app.get("/admin")
 def admin_page():
-    return render_template("admin.html")
 
+    return render_template(
+        "admin.html"
+    )
+
+
+# -------------------------
+# ТЕКУЩИЙ ПОЛЬЗОВАТЕЛЬ
+# -------------------------
 
 @app.get("/api/me")
 def me():
@@ -93,9 +133,15 @@ def me():
     return jsonify(
         id=tg_id(),
         admin=bool(row),
-        owner=bool(row and row["owner"])
+        owner=bool(
+            row and row["owner"]
+        )
     )
 
+
+# -------------------------
+# ТОВАРЫ
+# -------------------------
 
 @app.get("/api/products")
 def products():
@@ -105,7 +151,11 @@ def products():
     result = [
         dict(x)
         for x in conn.execute(
-            "SELECT * FROM products ORDER BY id DESC"
+            """
+            SELECT *
+            FROM products
+            ORDER BY id DESC
+            """
         )
     ]
 
@@ -118,29 +168,68 @@ def products():
 def add_product():
 
     if not admin():
+
         return jsonify(
             error="Нет прав администратора"
         ), 403
 
-    data = request.get_json(silent=True) or {}
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
 
     name = str(
-        data.get("name", "")
+        data.get(
+            "name",
+            ""
+        )
     ).strip()
 
+
     if not name:
+
         return jsonify(
             error="Введите название"
         ), 400
 
+
     try:
+
         price = int(
-            float(data.get("price", 0))
+            float(
+                data.get(
+                    "price",
+                    0
+                )
+            )
         )
+
     except:
+
         return jsonify(
             error="Неверная цена"
         ), 400
+
+
+    description = str(
+        data.get(
+            "description",
+            ""
+        )
+    )
+
+
+    image = str(
+        data.get(
+            "image",
+            ""
+        )
+    )
+
 
     conn = db()
 
@@ -157,37 +246,52 @@ def add_product():
         (
             name,
             price,
-            str(data.get("description", "")),
-            str(data.get("image", ""))
+            description,
+            image
         )
     )
 
     conn.commit()
     conn.close()
 
-    return jsonify(ok=True)
+
+    return jsonify(
+        ok=True
+    )
 
 
 @app.delete("/api/products/<int:pid>")
 def delete_product(pid):
 
     if not admin():
+
         return jsonify(
             error="Нет прав администратора"
         ), 403
 
+
     conn = db()
 
     conn.execute(
-        "DELETE FROM products WHERE id=?",
+        """
+        DELETE FROM products
+        WHERE id=?
+        """,
         (pid,)
     )
 
     conn.commit()
     conn.close()
 
-    return jsonify(ok=True)
 
+    return jsonify(
+        ok=True
+    )
+
+
+# -------------------------
+# АДМИНИСТРАТОРЫ
+# -------------------------
 
 @app.get("/api/admins")
 def admins():
@@ -195,9 +299,14 @@ def admins():
     row = admin()
 
     if not row or not row["owner"]:
+
         return jsonify(
-            error="Только владелец может управлять администраторами"
+            error=(
+                "Только владелец может "
+                "управлять администраторами"
+            )
         ), 403
+
 
     conn = db()
 
@@ -205,7 +314,9 @@ def admins():
         dict(x)
         for x in conn.execute(
             """
-            SELECT telegram_id, owner
+            SELECT
+                telegram_id,
+                owner
             FROM admins
             ORDER BY owner DESC
             """
@@ -223,23 +334,43 @@ def add_admin():
     row = admin()
 
     if not row or not row["owner"]:
+
         return jsonify(
-            error="Только владелец может добавлять администраторов"
+            error=(
+                "Только владелец может "
+                "добавлять администраторов"
+            )
         ), 403
 
-    data = request.get_json(silent=True) or {}
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
 
     try:
+
         uid = int(
-            data.get("telegram_id", 0)
+            data.get(
+                "telegram_id",
+                0
+            )
         )
+
     except:
+
         uid = 0
 
+
     if not uid:
+
         return jsonify(
             error="Введите Telegram ID"
         ), 400
+
 
     conn = db()
 
@@ -257,7 +388,10 @@ def add_admin():
     conn.commit()
     conn.close()
 
-    return jsonify(ok=True)
+
+    return jsonify(
+        ok=True
+    )
 
 
 @app.delete("/api/admins/<int:uid>")
@@ -266,14 +400,21 @@ def remove_admin(uid):
     row = admin()
 
     if not row or not row["owner"]:
+
         return jsonify(
-            error="Только владелец может удалять администраторов"
+            error=(
+                "Только владелец может "
+                "удалять администраторов"
+            )
         ), 403
 
+
     if uid == OWNER_ID:
+
         return jsonify(
             error="Владельца удалить нельзя"
         ), 400
+
 
     conn = db()
 
@@ -289,64 +430,297 @@ def remove_admin(uid):
     conn.commit()
     conn.close()
 
-    return jsonify(ok=True)
 
+    return jsonify(
+        ok=True
+    )
+
+
+# -------------------------
+# ПОКУПАТЕЛЬ НАЖАЛ
+# "Я ОПЛАТИЛ(А)"
+# -------------------------
 
 @app.post("/api/payment-done")
 def payment_done():
 
-    data = request.get_json(silent=True) or {}
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
 
-    cart = data.get("cart", [])
-    total = data.get("total", 0)
+
+    cart = data.get(
+        "cart",
+        []
+    )
+
+
+    total = data.get(
+        "total",
+        0
+    )
+
+
+    buyer = data.get(
+        "buyer",
+        {}
+    )
+
 
     if not cart:
+
         return jsonify(
             error="Корзина пуста"
         ), 400
 
-    token = os.getenv("BOT_TOKEN")
 
-    if not token:
-        return jsonify(
-            error="BOT_TOKEN не настроен"
-        ), 500
+    # Данные покупателя
 
-    text = "💰 НОВЫЙ ЗАКАЗ\n\n"
+    buyer_id = buyer.get(
+        "id"
+    )
+
+
+    first_name = str(
+        buyer.get(
+            "first_name",
+            ""
+        )
+    ).strip()
+
+
+    last_name = str(
+        buyer.get(
+            "last_name",
+            ""
+        )
+    ).strip()
+
+
+    username = str(
+        buyer.get(
+            "username",
+            ""
+        )
+    ).strip()
+
+
+    full_name = (
+        first_name
+        + " "
+        + last_name
+    ).strip()
+
+
+    if not full_name:
+
+        full_name = (
+            "Не указано"
+        )
+
+
+    if username:
+
+        username_text = (
+            "@"
+            + username.lstrip("@")
+        )
+
+    else:
+
+        username_text = (
+            "не указан"
+        )
+
+
+    if not buyer_id:
+
+        buyer_id_text = (
+            "не получен"
+        )
+
+    else:
+
+        buyer_id_text = str(
+            buyer_id
+        )
+
+
+    # Формируем сообщение
+    # ТОЧНО в нужном формате.
+
+    text = (
+        "💰 ПОКУПАТЕЛЬ СООБЩИЛ ОБ ОПЛАТЕ\n\n"
+    )
+
+    text += (
+        f"👤 Покупатель: {full_name}\n"
+    )
+
+    text += (
+        f"🔗 Username: {username_text}\n"
+    )
+
+    text += (
+        f"🆔 Telegram ID: {buyer_id_text}\n\n"
+    )
+
+    text += (
+        "📦 Заказ:\n"
+    )
+
 
     for item in cart:
 
+        item_name = item.get(
+            "name",
+            "Товар"
+        )
+
+        item_price = item.get(
+            "price",
+            0
+        )
+
         text += (
-            f"• {item.get('name', 'Товар')} "
-            f"— {item.get('price', 0)} ₽\n"
+            f"• {item_name} — "
+            f"{item_price} ₽\n"
         )
 
-    text += f"\n💵 Итого: {total} ₽"
 
-    try:
+    text += (
+        f"\n💵 Итого: {total} ₽"
+    )
 
-        response = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={
-                "chat_id": OWNER_ID,
-                "text": text
-            },
-            timeout=10
-        )
 
-        if not response.ok:
-            return jsonify(
-                error="Telegram не принял сообщение"
-            ), 502
+    text += (
+        "\n\n⚠️ Проверьте поступление "
+        "денег перед выдачей товара."
+    )
 
-    except Exception as error:
+
+    # Получаем токен бота.
+
+    bot_token = os.getenv(
+        "BOT_TOKEN"
+    )
+
+
+    if not bot_token:
 
         return jsonify(
-            error=str(error)
+            error=(
+                "BOT_TOKEN не настроен "
+                "на Render"
+            )
+        ), 500
+
+
+    # Получаем ВСЕХ администраторов,
+    # включая владельца.
+
+    conn = db()
+
+    admin_rows = conn.execute(
+        """
+        SELECT telegram_id
+        FROM admins
+        """
+    ).fetchall()
+
+    conn.close()
+
+
+    admin_ids = {
+        int(row["telegram_id"])
+        for row in admin_rows
+    }
+
+
+    # На всякий случай владелец
+    # добавляется отдельно.
+
+    admin_ids.add(
+        OWNER_ID
+    )
+
+
+    sent = 0
+
+    failed = []
+
+
+    # Рассылаем сообщение
+    # каждому администратору.
+
+    for admin_id in admin_ids:
+
+        try:
+
+            response = requests.post(
+
+                (
+                    f"https://api.telegram.org/"
+                    f"bot{bot_token}/sendMessage"
+                ),
+
+                json={
+                    "chat_id":
+                        admin_id,
+
+                    "text":
+                        text
+                },
+
+                timeout=10
+
+            )
+
+
+            if response.ok:
+
+                sent += 1
+
+            else:
+
+                failed.append(
+                    admin_id
+                )
+
+
+        except Exception:
+
+            failed.append(
+                admin_id
+            )
+
+
+    if sent == 0:
+
+        return jsonify(
+            error=(
+                "Не удалось отправить "
+                "уведомление ни одному "
+                "администратору. "
+                "Администраторы должны "
+                "сначала нажать Start у бота."
+            )
         ), 502
 
-    return jsonify(ok=True)
 
+    return jsonify(
+        ok=True,
+        sent=sent,
+        failed=failed
+    )
+
+
+# -------------------------
+# ЗАПУСК
+# -------------------------
 
 init_db()
 
@@ -356,6 +730,9 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(
-            os.getenv("PORT", "5000")
+            os.getenv(
+                "PORT",
+                "5000"
+            )
         )
     )
